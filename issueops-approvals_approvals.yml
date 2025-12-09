@@ -5,7 +5,7 @@ version: 1
 
 defaults:
   timeout: 48h
-  allow_self_approval: false
+  allow_self_approval: true
   issue_labels:
     - approval-required
     - issueops-release
