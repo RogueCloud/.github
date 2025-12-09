@@ -1,52 +1,98 @@
 # Repo-specific approval configuration for issueops-approvals
-# This takes precedence over the default approvals.yml
+# Multi-environment deployment approval flow: dev → qa → stage → prod
 
 version: 1
 
 defaults:
-  timeout: 48h
+  timeout: 72h
   allow_self_approval: true
   issue_labels:
     - approval-required
-    - issueops-release
 
 policies:
-  # Maintainers who can approve releases
-  maintainers:
+  # Anyone on the team can approve dev
+  developers:
     approvers: [jamengual]
     min_approvals: 1
 
-  # For major releases, need more scrutiny
-  major-release:
+  # QA team for QA environment
+  qa-team:
+    approvers: [jamengual]
+    min_approvals: 1
+
+  # Tech leads for staging
+  tech-leads:
+    approvers: [jamengual]
+    min_approvals: 1
+
+  # Senior engineers + security for production
+  production-approvers:
     approvers: [jamengual]
     require_all: true
 
 workflows:
-  # Patch/minor release
-  release:
-    description: "Release approval for issueops-approvals"
+  # DEV - Quick approval, any developer
+  deploy-dev:
+    description: "Deploy to DEV environment"
     require:
-      - policy: maintainers
+      - policy: developers
+    on_approved:
+      close_issue: true
+      comment: |
+        ✅ **DEV deployment approved!**
+
+        Version `{{version}}` is deploying to DEV.
+
+        👉 Next step: Request QA deployment with `/deploy-qa`
+
+  # QA - QA team approval required
+  deploy-qa:
+    description: "Deploy to QA environment"
+    require:
+      - policy: qa-team
+    on_approved:
+      close_issue: true
+      comment: |
+        ✅ **QA deployment approved!**
+
+        Version `{{version}}` is deploying to QA.
+
+        👉 Next step: After QA validation, request staging with `/deploy-stage`
+
+  # STAGING - Tech lead approval
+  deploy-stage:
+    description: "Deploy to STAGING environment"
+    require:
+      - policy: tech-leads
+    on_approved:
+      close_issue: true
+      comment: |
+        ✅ **STAGING deployment approved!**
+
+        Version `{{version}}` is deploying to STAGING.
+
+        👉 Next step: After staging validation, request production with `/deploy-prod`
+
+  # PRODUCTION - Requires all production approvers
+  deploy-prod:
+    description: "Deploy to PRODUCTION environment (requires all approvers)"
+    require:
+      - policy: production-approvers
+    on_approved:
+      create_tag: true
+      close_issue: true
+      comment: |
+        🚀 **PRODUCTION deployment approved!**
+
+        Version `{{version}}` is now live in production.
+        Tag `{{tag}}` has been created.
+
+  # Release workflow (original)
+  release:
+    description: "Release approval"
+    require:
+      - policy: developers
     on_approved:
       create_tag: true
       close_issue: true
       comment: "Release approved! Tag {{tag}} created."
-
-  # Major version release
-  major-release:
-    description: "Major version release (breaking changes)"
-    require:
-      - policy: major-release
-    on_approved:
-      create_tag: true
-      close_issue: true
-      comment: "Major release approved! Tag {{tag}} created. Remember to update CHANGELOG."
-
-  # Test workflow for CI
-  test-deploy:
-    description: "Test workflow for CI validation"
-    require:
-      - policy: maintainers
-    on_approved:
-      close_issue: true
-      comment: "Test approved!"
