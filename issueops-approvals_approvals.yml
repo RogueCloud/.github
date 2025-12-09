@@ -1,0 +1,52 @@
+# Repo-specific approval configuration for issueops-approvals
+# This takes precedence over the default approvals.yml
+
+version: 1
+
+defaults:
+  timeout: 48h
+  allow_self_approval: false
+  issue_labels:
+    - approval-required
+    - issueops-release
+
+policies:
+  # Maintainers who can approve releases
+  maintainers:
+    approvers: [jamengual]
+    min_approvals: 1
+
+  # For major releases, need more scrutiny
+  major-release:
+    approvers: [jamengual]
+    require_all: true
+
+workflows:
+  # Patch/minor release
+  release:
+    description: "Release approval for issueops-approvals"
+    require:
+      - policy: maintainers
+    on_approved:
+      create_tag: true
+      close_issue: true
+      comment: "Release approved! Tag {{tag}} created."
+
+  # Major version release
+  major-release:
+    description: "Major version release (breaking changes)"
+    require:
+      - policy: major-release
+    on_approved:
+      create_tag: true
+      close_issue: true
+      comment: "Major release approved! Tag {{tag}} created. Remember to update CHANGELOG."
+
+  # Test workflow for CI
+  test-deploy:
+    description: "Test workflow for CI validation"
+    require:
+      - policy: maintainers
+    on_approved:
+      close_issue: true
+      comment: "Test approved!"

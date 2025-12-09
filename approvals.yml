@@ -1,0 +1,42 @@
+# Default approval configuration for all RogueCloud repositories
+# This is the fallback config when no repo-specific config exists
+
+version: 1
+
+defaults:
+  timeout: 72h
+  allow_self_approval: false
+  issue_labels:
+    - approval-required
+    - org-default
+
+policies:
+  # Default policy: any org member can approve
+  org-members:
+    approvers: [jamengual]
+    min_approvals: 1
+
+  # Stricter policy for production
+  production-approvers:
+    approvers: [jamengual]
+    require_all: true
+
+workflows:
+  # Default deployment workflow
+  default-deploy:
+    description: "Default deployment approval for RogueCloud repos"
+    require:
+      - policy: org-members
+    on_approved:
+      close_issue: true
+      comment: "Approved! Deployment authorized."
+
+  # Production deployment (stricter)
+  production-deploy:
+    description: "Production deployment requiring full approval"
+    require:
+      - policy: production-approvers
+    on_approved:
+      create_tag: true
+      close_issue: true
+      comment: "Production deployment approved. Tag {{tag}} created."
